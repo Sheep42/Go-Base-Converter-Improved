@@ -42,7 +42,7 @@ func main() {
 
 			fmt.Print("\n\n(D)ecimal to Base")
 			fmt.Print("\n(B)ase to Decimal")
-
+			fmt.Print("\n(Q)uit")
 			fmt.Print("\n-> ")
 
 			choice, err = getStringInput(opts)
@@ -52,10 +52,12 @@ func main() {
 				continue
 			}
 
-		}
+			if "q" == choice {
+				fmt.Print("\nBye")
+				break
+			}
 
-		// fmt.Print("\n\nConverting Decimal to Base")
-		// fmt.Print("\n\nConverting Base to Decimal")
+		}
 
 		//Get the base
 		if 0 == base {
@@ -129,6 +131,16 @@ func inSlice(needle string, haystack []string) (int, bool) {
 	}
 
 	return -1, false
+}
+
+func processOptions(choice string) {
+
+	if "d" == choice {
+		fmt.Print("\n\nConverting Decimal to Base")
+	} else if "b" == choice {
+		fmt.Print("\n\nConverting Base to Decimal")
+	}
+
 }
 
 func getNumberInput(min int, max int) (int, error) {
