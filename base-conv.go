@@ -1,85 +1,78 @@
 package main
 
 import (
-	"fmt"
 	"bufio"
+	"fmt"
 	"os"
 	"strconv"
 	"strings"
 )
 
+type inputErr struct {
+	input string
+	msg   string
+}
+
+func (e *inputErr) Error() string {
+	return fmt.Sprintf("%s %s", e.input, e.msg)
+}
+
 func main() {
 	reader := bufio.NewReader(os.Stdin)
 
-	askConv := true
-	askBase := true
 	askNum := true
 
-	baseInt := 0
 	numInt := 0
 
-	var err error
-	var choice string
+	const MIN_BASE = 1
+	const MAX_BASE = 16
+	opts := []string{"d", "b", "q"}
+
 	var num string
+	var base int
+	var choice string
+	var err error
 
 	fmt.Print("*** Go Base Converter ***")
 
 	for {
-		//Get the conversion type
-		if(askConv) {
-			fmt.Print("\n\n(D)ec to Base")
-			fmt.Print("\n(B)ase to Dec")
+
+		// Get the option
+		if "" == choice {
+
+			fmt.Print("\n\n(D)ecimal to Base")
+			fmt.Print("\n(B)ase to Decimal")
 
 			fmt.Print("\n-> ")
-			
-			choice, _ = reader.ReadString('\n')
-			choice = strings.Replace(choice, "\n", "", -1)
 
-			switch choice {
-				case "D": fallthrough
-				case "d":
-					fmt.Print("\n\nConverting Decimal to Base")
-				case "B": fallthrough
-				case "b":
-					fmt.Print("\n\nConverting Base to Decimal")
+			choice, err = getStringInput(opts)
 
-				default:
-					fmt.Print("\n\nThat was not a choice, please try again")
-					continue
+			if err != nil {
+				fmt.Println(err)
+				continue
 			}
-		} else {
-			askConv = true
+
 		}
 
+		// fmt.Print("\n\nConverting Decimal to Base")
+		// fmt.Print("\n\nConverting Base to Decimal")
+
 		//Get the base
-		if(askBase) {
-			fmt.Print("\nPlease enter base: ")
+		if 0 == base {
 
-			base, _ := reader.ReadString('\n')
-			base = strings.Replace(base, "\n", "", -1)
+			fmt.Print("\nPlease enter base between 1 and 16: ")
 
-			baseInt, err = strconv.Atoi(base)
+			base, err = getNumberInput(MIN_BASE, MAX_BASE)
 
-			//Catch errors
 			if err != nil {
-				fmt.Print("\nBase must be an integer\n\n")
-				askConv = false
+				fmt.Println(err)
 				continue
 			}
 
-			if(baseInt < 1 || baseInt > 16) {
-				fmt.Print("\nBase must be between 1 and 16\n\n")
-
-				askConv = false
-
-				continue
-			}
-		} else {
-			askBase = true
 		}
 
 		//Get the number
-		if(askNum) {
+		if askNum {
 			fmt.Print("\nPlease enter number: ")
 
 			num, _ = reader.ReadString('\n')
@@ -88,11 +81,8 @@ func main() {
 			numInt, err = strconv.Atoi(num)
 
 			//Catch errors
-			if err != nil && baseInt <= 10 {
+			if err != nil && base <= 10 {
 				fmt.Print("\nNumber must be an integer\n\n")
-
-				askConv = false
-				askBase = false
 
 				continue
 			}
@@ -101,32 +91,82 @@ func main() {
 		}
 
 		if choice == "D" || choice == "d" {
-			result := convertDecToBase(numInt, baseInt)
+			result := convertDecToBase(numInt, base)
 
-			fmt.Printf("%d in base %d is %s", numInt, baseInt, result)
+			fmt.Printf("%d in base %d is %s", numInt, base, result)
 		} else if choice == "B" || choice == "b" {
-			result := convertBaseToDec(num, baseInt)
+			result := convertBaseToDec(num, base)
 
 			if result >= 0 {
-				fmt.Printf("%s (base %d) in decimal is %d", num, baseInt, result)
+				fmt.Printf("%s (base %d) in decimal is %d", num, base, result)
 			}
 		}
 	}
 }
 
-/**
-*	Let dec = the number to convert
-*	Let base = base to convert to
-*	
-*	While dec > 0:
-*		Let quot = the quotient of dec / base ignoring remainder
-*		Let rem = remainder of dec / base
-*		Prepend remainder to resulting number (converting to A-F for base 11-16)
-*		Let new dec = quot
-**/
+func getStringInput(valid_opts []string) (string, error) {
+
+	choice, err := getInput()
+
+	_, found := inSlice(choice, valid_opts)
+
+	if !found {
+		return "", &inputErr{choice, "is not a choice"}
+	}
+
+	return choice, err
+
+}
+
+func inSlice(needle string, haystack []string) (int, bool) {
+
+	for key, item := range haystack {
+
+		if item == needle {
+			return key, true
+		}
+
+	}
+
+	return -1, false
+}
+
+func getNumberInput(min int, max int) (int, error) {
+
+	choice, err := getInput()
+
+	if err != nil {
+		return 0, err
+	}
+
+	choice_as_num, err := strconv.Atoi(choice)
+
+	if err != nil {
+		return 0, &inputErr{choice, "is not a number"}
+	}
+
+	if choice_as_num < min || choice_as_num > max {
+		return 0, &inputErr{choice, fmt.Sprintf(" is not between %d and %d", min, max)}
+	}
+
+	return choice_as_num, err
+
+}
+
+func getInput() (string, error) {
+	reader := bufio.NewReader(os.Stdin)
+
+	choice, err := reader.ReadString('\n')
+	choice = strings.Replace(choice, "\n", "", -1)
+
+	choice = strings.ToLower(choice)
+
+	return choice, err
+}
+
 func convertDecToBase(dec, base int) string {
 	resultSlice := []string{} //Declare empty slice
-	numberRep := []string{"0","1","2","3","4","5","6","7","8","9","A","B","C","D","E","F"}
+	numberRep := []string{"0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "A", "B", "C", "D", "E", "F"}
 
 	for dec > 0 {
 		if base > 1 {
@@ -150,19 +190,6 @@ func convertDecToBase(dec, base int) string {
 	return result
 }
 
-/**
-*	 Let num = string rep of starting number
-*	 Let base = base to convert from
-*	 Let numLen = length of num
-*	 
-*	 While numLen > 0:
-*		first = leftmost char in num
-*		num = num excluding first
-*		check if base > 10 and make any necessary conversions
-*		convert first to an int
-*		decrement numLen
-*		add first * (base^numLen) to result
-**/
 func convertBaseToDec(num string, base int) int {
 	result := 0
 
@@ -175,19 +202,31 @@ func convertBaseToDec(num string, base int) int {
 
 		if base > 10 {
 			switch first {
-				case "a": fallthrough
-				case "A": first = "10"
-				case "b": fallthrough
-				case "B": first = "11"
-				case "c": fallthrough
-				case "C": first = "12"
-				case "d": fallthrough
-				case "D": first = "13"
-				case "e": fallthrough
-				case "E": first = "14"
-				case "f": fallthrough
-				case "F": first = "15"
-				default:
+			case "a":
+				fallthrough
+			case "A":
+				first = "10"
+			case "b":
+				fallthrough
+			case "B":
+				first = "11"
+			case "c":
+				fallthrough
+			case "C":
+				first = "12"
+			case "d":
+				fallthrough
+			case "D":
+				first = "13"
+			case "e":
+				fallthrough
+			case "E":
+				first = "14"
+			case "f":
+				fallthrough
+			case "F":
+				first = "15"
+			default:
 			}
 		}
 
@@ -215,16 +254,16 @@ func convertBaseToDec(num string, base int) int {
 
 //Integer exponentation
 func pow(a, b int) int {
-    p := 1
+	result := 1
 
-    for b > 0 {
-        if b & 1 != 0 {
-	        p *= a
-        }
+	for b > 0 {
+		if b&1 != 0 {
+			result *= a
+		}
 
-        b >>= 1
-        a *= a
-    }
+		b >>= 1
+		a *= a
+	}
 
-    return p
+	return result
 }
