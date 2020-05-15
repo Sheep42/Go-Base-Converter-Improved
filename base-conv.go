@@ -1,4 +1,4 @@
-package main
+package base_converter
 
 import (
 	"bufio"
@@ -7,15 +7,6 @@ import (
 	"strconv"
 	"strings"
 )
-
-type inputErr struct {
-	input string
-	msg   string
-}
-
-func (e *inputErr) Error() string {
-	return fmt.Sprintf("%s %s", e.input, e.msg)
-}
 
 func main() {
 	reader := bufio.NewReader(os.Stdin)
