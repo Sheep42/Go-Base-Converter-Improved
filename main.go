@@ -1,6 +1,7 @@
-package base_converter
+package main
 
 import (
+	"Go-Base-Converter-Improved/errors"
 	"bufio"
 	"fmt"
 	"os"
@@ -99,7 +100,7 @@ func getStringInput(valid_opts []string) (string, error) {
 	_, found := inSlice(choice, valid_opts)
 
 	if !found {
-		return "", &InputErr{choice, "is not a choice"}
+		return "", errors.ThrowInputError(choice, "is not a choice")
 	}
 
 	return choice, err
@@ -150,11 +151,11 @@ func getNumberInput(min int, max int) (int, error) {
 	choice_as_num, err := strconv.Atoi(choice)
 
 	if err != nil {
-		return 0, &InputErr{choice, "is not a number"}
+		return 0, errors.ThrowInputError(choice, "is not a number")
 	}
 
 	if choice_as_num < min || choice_as_num > max {
-		return 0, &InputErr{choice, fmt.Sprintf(" is not between %d and %d", min, max)}
+		return 0, errors.ThrowInputError(choice, fmt.Sprintf(" is not between %d and %d", min, max))
 	}
 
 	return choice_as_num, err
@@ -177,7 +178,7 @@ func validateNumber(num_slice []int, base int) error {
 	for _, val := range num_slice {
 
 		if val >= base {
-			return &InputErr{strconv.Itoa(val), fmt.Sprintf("is greater than or equal to base %d", base)}
+			return errors.ThrowInputError(strconv.Itoa(val), fmt.Sprintf("is greater than or equal to base %d", base))
 		}
 
 	}
@@ -217,7 +218,7 @@ func getNumberAsSlice(num string) ([]int, error) {
 			first_as_int, ok = char_mappings[first]
 
 			if !ok {
-				return []int{}, &InputErr{first, "is not a valid value"}
+				return []int{}, errors.ThrowInputError(first, "is not a valid value")
 			}
 
 		}
