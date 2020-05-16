@@ -15,8 +15,9 @@ func main() {
 	const MAX_BASE = 16
 	valid_opts := []string{"d", "b", "q"}
 
-	var num string
+	var number_to_convert string
 	var num_as_slice []int
+	var num_as_int int
 	var base int
 	var choice string
 	var err error
@@ -69,28 +70,53 @@ func main() {
 		}
 
 		//Get the number
-		if "" == num {
+		if "" == number_to_convert {
 
 			fmt.Print("\nPlease enter number to convert: ")
 
-			if num, err = getInput(); err != nil {
+			if number_to_convert, err = getInput(); err != nil {
 				fmt.Println(err)
 				continue
 			}
 
-			if num_as_slice, err = getNumberAsSlice(num); err != nil {
+			if num_as_slice, err = getNumberAsSlice(number_to_convert); err != nil {
 				fmt.Println(err)
+				number_to_convert = ""
 				continue
 			}
 
-			if err = validateNumber(num_as_slice, base); err != nil {
+			if err = validateNumber(num_as_slice, base, choice); err != nil {
 				fmt.Println(err)
+				number_to_convert = ""
 				continue
 			}
 
 		}
 
+		if "d" == choice {
+
+			if num_as_int, err = strconv.Atoi(number_to_convert); err != nil {
+				fmt.Print(err)
+				number_to_convert = ""
+				continue
+			}
+
+			result := convertDecToBase(num_as_int, base)
+			fmt.Printf("%d in base %d is %s", num_as_int, base, result)
+
+		} else if "b" == choice {
+
+			result := convertBaseToDec(num_as_slice, base)
+			fmt.Printf("%s (base %d) in decimal is %d", number_to_convert, base, result)
+
+		}
+
+		choice = ""
+		base = 0
+		number_to_convert = ""
+
 	}
+
 }
 
 func getStringInput(valid_opts []string) (string, error) {
@@ -118,26 +144,6 @@ func inSlice(needle string, haystack []string) (int, bool) {
 	}
 
 	return -1, false
-}
-
-func processOptions(choice string) {
-
-	// if "d" == choice {
-
-	// 	result := convertDecToBase(numInt, base)
-
-	// 	fmt.Printf("%d in base %d is %s", numInt, base, result)
-
-	// } else if "b" == choice {
-
-	// 	result := convertBaseToDec(num, base)
-
-	// 	if result >= 0 {
-	// 		fmt.Printf("%s (base %d) in decimal is %d", num, base, result)
-	// 	}
-
-	// }
-
 }
 
 func getNumberInput(min int, max int) (int, error) {
@@ -171,20 +177,6 @@ func getInput() (string, error) {
 	choice = strings.ToLower(choice)
 
 	return choice, err
-}
-
-func validateNumber(num_slice []int, base int) error {
-
-	for _, val := range num_slice {
-
-		if val >= base {
-			return errors.ThrowInputError(strconv.Itoa(val), fmt.Sprintf("is greater than or equal to base %d", base))
-		}
-
-	}
-
-	return nil
-
 }
 
 func getNumberAsSlice(num string) ([]int, error) {
@@ -224,6 +216,7 @@ func getNumberAsSlice(num string) ([]int, error) {
 		}
 
 		num_as_slice = append(num_as_slice, first_as_int)
+		num_length--
 
 	}
 
@@ -231,100 +224,110 @@ func getNumberAsSlice(num string) ([]int, error) {
 
 }
 
-func convertDecToBase(dec, base int) string {
-	resultSlice := []string{} //Declare empty slice
-	numberRep := []string{"0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "A", "B", "C", "D", "E", "F"}
+func validateNumber(num_slice []int, base int, choice string) error {
 
-	for dec > 0 {
-		if base > 1 {
-			quot := dec / base
-			rem := dec % base
+	upper_limit := base
 
-			//Prepend rem to result
-			remSlice := []string{numberRep[rem]}
-			resultSlice = append(remSlice, resultSlice...)
+	if 1 == base {
+		upper_limit = 2
+	} 
 
-			dec = quot
-		} else {
-			//Handle unary (lol)
-			resultSlice = append(resultSlice, "1")
-			dec--
-		}
+	if "d" == choice {
+		upper_limit = 10
 	}
 
-	result := strings.Join(resultSlice, "")
+	for _, val := range num_slice {
 
-	return result
+		if val >= upper_limit {
+			return errors.ThrowInputError(strconv.Itoa(val), fmt.Sprintf("is greater than or equal to base: %d", upper_limit))
+		} 
+
+	}
+
+	return nil
+
 }
 
-func convertBaseToDec(num string, base int) int {
+func convertDecToBase(decimal, base int) string {
+
+	result_as_slice := []string{}
+	number_glyphs := []string{"0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "A", "B", "C", "D", "E", "F"}
+
+	if 0 == decimal {
+		return "0"
+	} 
+
+	for decimal > 0 {
+
+		if base > 1 {
+
+			quotient := decimal / base
+			remainder := decimal % base
+
+			//Prepend remainder to result
+			remainder_as_slice := []string{number_glyphs[remainder]}
+			result_as_slice = append(remainder_as_slice, result_as_slice...)
+
+			decimal = quotient
+
+		} else {
+
+			//Handle unary (lol)
+			result_as_slice = append(result_as_slice, "1")
+			decimal--
+
+		}
+
+	}
+
+	result := strings.Join(result_as_slice, "")
+
+	return result
+
+}
+
+func convertBaseToDec(num_as_slice []int, base int) int {
+
 	result := 0
+	num_length := len(num_as_slice)
 
-	numLen := len(num)
+	if base > 1 {
+		
+		for _, val := range num_as_slice {
 
-	//Read the num char by char
-	for numLen > 0 {
-		first := num[0:1]
-		num = num[1:numLen]
+			num_length--
+			result += (val * (raise(base, num_length)))
 
-		if base > 10 {
-			switch first {
-			case "a":
-				fallthrough
-			case "A":
-				first = "10"
-			case "b":
-				fallthrough
-			case "B":
-				first = "11"
-			case "c":
-				fallthrough
-			case "C":
-				first = "12"
-			case "d":
-				fallthrough
-			case "D":
-				first = "13"
-			case "e":
-				fallthrough
-			case "E":
-				first = "14"
-			case "f":
-				fallthrough
-			case "F":
-				first = "15"
-			default:
-			}
 		}
 
-		firstInt, err := strconv.Atoi(first)
+	} else {
 
-		//Check errors
-		if err != nil {
-			fmt.Print("\n\nCould not finish conversion: Number contains an invalid value!\n\n")
-
-			return -1
+		for i := 0; i < num_length; i++ {
+			result++;
 		}
 
-		numLen--
-		result += (firstInt * (pow(base, numLen)))
 	}
 
 	return result
+
 }
 
 //Integer exponentation
-func pow(a, b int) int {
+func raise(base, power int) int {
+
 	result := 1
 
-	for b > 0 {
-		if b&1 != 0 {
-			result *= a
+	for power > 0 {
+
+		if power&1 != 0 {
+			result *= base
 		}
 
-		b >>= 1
-		a *= a
+		power >>= 1
+		base *= base
+
 	}
 
 	return result
+
 }
